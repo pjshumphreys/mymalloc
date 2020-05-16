@@ -57,7 +57,7 @@ void zx_sbrk(void *addr, unsigned int size) {
 void *zx_malloc(unsigned int size) {
   static unsigned char cleanedUp = FALSE;
   static unsigned int temp;
-  
+
   temp = size + sizeof(struct heapItem);
 
   do {
@@ -109,8 +109,7 @@ void *zx_malloc(unsigned int size) {
         }
 
         if(
-          next &&
-          next->type == current->type &&
+          next && next->type == HEAP_FREE &&
           (struct heapItem *)(((void *)current) + sizeof(struct heapItem) + current->size) == next
         ) {
           current->next = next->next;
