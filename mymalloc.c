@@ -81,9 +81,7 @@ void *zx_malloc(unsigned int size) {
         current->type = HEAP_ALLOCED;
         current->next = next;
 
-        if(current == heap.nextFree) {
-          heap.nextFree = next;
-        }
+        heap.nextFree = next;
 
         return (void *)current + sizeof(struct heapItem);
       }
