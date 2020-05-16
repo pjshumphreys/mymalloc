@@ -10,9 +10,9 @@
 
 
 struct heapItem {
-  struct heapItem * next; /* where the next block is, 0 for no next block */ 
+  struct heapItem * next; /* where the next block is, 0 for no next block */
   unsigned int size; /* how many bytes are contained in this block, not including these 5 header bytes */
-  unsigned char type; /* 0 = free, 1 = allocated */ 
+  unsigned char type; /* 0 = free, 1 = allocated */
 };
 
 struct {
@@ -45,12 +45,12 @@ void zx_sbrk(void *addr, unsigned int size) {
     heap.nextFree = next;
     return;
   }
-  
+
   /* Tack the new block onto the end of the linked list */
   while(current->next != NULL) {
     current = current->next;
   }
-  
+
   current->next = next;
 }
 
@@ -61,14 +61,14 @@ void *zx_malloc(unsigned int size) {
   if(heap.nextFree == NULL) {
     return NULL;
   }
-  
+
   temp = size + sizeof(struct heapItem);
   cleanedUp = FALSE;
 
   do {
     /* find a suitable location the put the new data, starting at heap.nextFree */
     current = heap.nextFree;
-    
+
     do {
       if(current->type == HEAP_FREE && current->size >= temp) {
         /* suitable location found, set up the headers then return the pointer */
@@ -78,27 +78,27 @@ void *zx_malloc(unsigned int size) {
         next->type = HEAP_FREE;
 
         current->size = size;
-        current->type = HEAP_ALLOCED; 
+        current->type = HEAP_ALLOCED;
         current->next = next;
 
         if(current == heap.nextFree) {
           heap.nextFree = next;
         }
-        
+
         return (void *)current + sizeof(struct heapItem);
       }
-      
+
       current = current->next;
     } while(current);
-  
+
     /* if no suitable free position was found and the heap has already been cleaned up then fail */
     if(cleanedUp) {
       return NULL;
     }
-    
+
     heap.nextFree = NULL;
     current = heap.first;
-    
+
     /* Attempt to coalesce the free blocks together then try again, but only once */
     while(current != NULL) {
       next = current->next;
@@ -107,7 +107,7 @@ void *zx_malloc(unsigned int size) {
         if(heap.nextFree == NULL) {
           heap.nextFree = current;
         }
-      
+
         if(
           next &&
           next->type == current->type &&
@@ -118,7 +118,7 @@ void *zx_malloc(unsigned int size) {
           continue;
         }
       }
-      
+
       current = next;
     }
 
@@ -130,7 +130,7 @@ void zx_free(void *addr) {
   if(addr != NULL) {
     current = ((struct heapItem *)(addr - sizeof(struct heapItem)));
     current->type = HEAP_FREE;
-    
+
     /* try to keep the next available free block as unfragmented as possible */
     if(heap.nextFree == NULL) {
       heap.nextFree = current;
@@ -170,16 +170,16 @@ void *zx_realloc(void *p, unsigned int size) {
   ) {
      /* get the total amount of memory available in this interval */
     tempSize = current->size + next->size;
-    
+
     if(tempSize >= size) {
       tempSize -= size;
-      
+
       /* if the nextFree block is the same one as the free one we're updating, update the pointer as well */
       updateNextFree = (next == heap.nextFree);
 
       /* remove the old free block from the linked list as we'll be making a new one */
       current->next = next->next;
-      
+
       /* update the current block's size to its new value */
       current->size = size;
 
@@ -197,7 +197,7 @@ void *zx_realloc(void *p, unsigned int size) {
       return p;
     }
   }
-  
+
   /* attempt to allocate a new block of the necessary size, memcpy the data into it then free the old one */
   newOne = zx_malloc(size);
 
@@ -212,11 +212,11 @@ void *zx_realloc(void *p, unsigned int size) {
   if(tempSize > current->size) {
     tempSize = current->size;
   }
-  
+
   if(tempSize) {
     memcpy(newOne, p, tempSize);
   }
-  
+
   /* free the old data */
   current->type = HEAP_FREE;
 
@@ -224,6 +224,21 @@ void *zx_realloc(void *p, unsigned int size) {
   return newOne;
 }
 
+/* I probably won't need calloc but it's easy to implement so why not? */
+void* zx_calloc(size_t num, size_t size) {
+  void * temp;
+  size_t tot = num * size;
+
+  temp = zx_malloc(tot);
+
+  if(temp) {
+    memset(temp, 0, tot);
+  }
+
+  return temp;
+}
+
+/* very simple implemention of mallinfo just for the sake of completeness */
 void zx_mallinfo(unsigned int *total, unsigned int *largest) {
   static int tot = 0;
   static int biggest = 0;
@@ -253,30 +268,30 @@ unsigned char fakeHeap[4000];
 int main(int argc, char ** argv) {
   void * temp = NULL;
   void * temp2 = NULL;
-  
+
   memset(&fakeHeap, 0, 4000);
-  
+
   zx_mallinit();
-  
+
   /* set up some memory for our fake heap to use */
   zx_sbrk(&fakeHeap, 4000);
 
   /* test 1. malloc size bigger than heap should return NULL */
   temp = zx_malloc(4000);
-  
+
   fputs(temp == NULL ? "true\n" : "false\n", stdout);
 
   /* test 2. malloc smaller size should return the proper address with the fake heap */
   temp = zx_malloc(5);
-  
+
   fputs(temp == &(fakeHeap[sizeof(struct heapItem)]) ? "true\n" : "false\n", stdout);
-  
+
   zx_free(temp);
 
 
   /* test 3. Freeing the memory from the previous test then mallocing the same amount again should return the same address */
   temp = zx_malloc(5);
-  
+
   fputs(temp == &(fakeHeap[sizeof(struct heapItem)]) ? "true\n" : "false\n", stdout);
 
 
@@ -285,13 +300,23 @@ int main(int argc, char ** argv) {
 
   fputs(temp == temp2 ? "true\n" : "false\n", stdout);
 
-  
-  /*test 5. reallocing memory at the top of the heap to be smaller should return the same address */
+
+  /* test 5. reallocing memory at the top of the heap to be smaller should return the same address */
   temp = zx_realloc(temp2, 5);
 
   fputs(temp == temp2 ? "true\n" : "false\n", stdout);
 
+  /* test 6. calloc memory should work */
+  temp2 = zx_calloc(2, 3);
+
+  fputs(temp2 != NULL ? "true\n" : "false\n", stdout);
+
+  /* test 7. the result from calloc should be different */
+  fputs(temp != temp2 ? "true\n" : "false\n", stdout);
+
+  zx_free(temp2);
+
   zx_free(temp);
 
-  return 0;  
+  return 0;
 }
