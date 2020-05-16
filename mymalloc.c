@@ -55,17 +55,17 @@ void zx_sbrk(void *addr, unsigned int size) {
 }
 
 void *zx_malloc(unsigned int size) {
-  static unsigned char cleanedUp;
+  static unsigned char cleanedUp = FALSE;
   static unsigned int temp;
-
-  if(heap.nextFree == NULL) {
-    return NULL;
-  }
-
+  
   temp = size + sizeof(struct heapItem);
-  cleanedUp = FALSE;
 
   do {
+    /* no free memory available. just quit */
+    if(heap.nextFree == NULL) {
+      return NULL;
+    }
+
     /* find a suitable location the put the new data, starting at heap.nextFree */
     current = heap.nextFree;
 
