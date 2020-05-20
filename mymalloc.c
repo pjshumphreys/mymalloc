@@ -8,7 +8,6 @@
 #define TRUE 1
 #define FALSE 0
 
-
 struct heapItem {
   struct heapItem * next; /* where the next block is, 0 for no next block */
   unsigned int size; /* how many bytes are contained in this block, not including these 5 header bytes */
@@ -218,7 +217,7 @@ void *zx_realloc(void *p, unsigned int size) {
 }
 
 void *zx_calloc(unsigned int num, unsigned int size) {
-  size_t tot = num * size;
+  unsigned int tot = num * size;
   void *temp = zx_malloc(tot);
 
   if(temp) {
@@ -230,8 +229,8 @@ void *zx_calloc(unsigned int num, unsigned int size) {
 
 /* very simple implemention of mallinfo just for the sake of completeness */
 void zx_mallinfo(unsigned int *total, unsigned int *largest) {
-  static int tot = 0;
-  static int biggest = 0;
+  unsigned int tot = 0;
+  unsigned int biggest = 0;
 
   current = heap.first;
 
@@ -296,10 +295,12 @@ int main(int argc, char ** argv) {
 
   fputs(temp == temp2 ? "true\n" : "false\n", stdout);
 
+
   /* test 6. calloc memory should work */
   temp2 = zx_calloc(2, 3);
 
   fputs(temp2 != NULL ? "true\n" : "false\n", stdout);
+
 
   /* test 7. the result from calloc should be different */
   fputs(temp != temp2 ? "true\n" : "false\n", stdout);
