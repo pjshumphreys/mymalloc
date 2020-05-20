@@ -24,8 +24,7 @@ struct heapItem * current;
 struct heapItem * next;
 
 void zx_mallinit(void) {
-  heap.first = NULL;
-  heap.nextFree = NULL;
+  heap.nextFree = heap.first = NULL;
 }
 
 void zx_sbrk(void *addr, unsigned int size) {
@@ -38,13 +37,12 @@ void zx_sbrk(void *addr, unsigned int size) {
   next->size = size - sizeof(struct heapItem);
   next->type = HEAP_FREE;
 
-  current = heap.first;
-
-  if(current == NULL) {
-    heap.first = next;
-    heap.nextFree = next;
+  if(heap.first == NULL) {
+    heap.nextFree = heap.first = next;
     return;
   }
+
+  current = heap.first;
 
   /* Tack the new block onto the end of the linked list */
   while(current->next != NULL) {
@@ -55,10 +53,8 @@ void zx_sbrk(void *addr, unsigned int size) {
 }
 
 void *zx_malloc(unsigned int size) {
-  static unsigned char cleanedUp = FALSE;
-  static unsigned int temp;
-
-  temp = size + sizeof(struct heapItem);
+  unsigned int cleanedUp = FALSE;
+  unsigned int temp = size + sizeof(struct heapItem);
 
   do {
     /* no free memory available. just quit */
@@ -145,9 +141,9 @@ void zx_free(void *addr) {
 }
 
 void *zx_realloc(void *p, unsigned int size) {
-  static void * newOne;
-  static unsigned int tempSize;
-  static unsigned char updateNextFree;
+  void * newOne;
+  unsigned int tempSize;
+  unsigned int updateNextFree;
 
   /* if realloc'ing a null pointer then just do a malloc */
   if(p == NULL) {
@@ -221,12 +217,9 @@ void *zx_realloc(void *p, unsigned int size) {
   return newOne;
 }
 
-/* I probably won't need calloc but it's easy to implement so why not? */
-void* zx_calloc(size_t num, size_t size) {
-  void * temp;
+void *zx_calloc(unsigned int num, unsigned int size) {
   size_t tot = num * size;
-
-  temp = zx_malloc(tot);
+  void *temp = zx_malloc(tot);
 
   if(temp) {
     memset(temp, 0, tot);
