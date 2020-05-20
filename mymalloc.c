@@ -124,10 +124,7 @@ void zx_free(void *addr) {
     current->type = HEAP_FREE;
 
     /* try to keep the next available free block as unfragmented as possible */
-    if(heap.nextFree == NULL) {
-      heap.nextFree = current;
-    }
-    else if(heap.nextFree == current->next) {
+    if(NULL != heap.nextFree && heap.nextFree == current->next) {
       next = (struct heapItem *)(addr + current->size);
 
       if(next == heap.nextFree) {
